@@ -1,6 +1,6 @@
 # Caffe branch for R-FCN
 
-This is a branch of Caffe supporting [**R-FCN**](https://github.com/daijifeng001/R-FCN), which has been tested under Windows (Windows 7, 8, Server 2012 R2) and Linux (Ubuntu 14.04).
+This is a branch of Caffe forked from [**R-FCN**](https://github.com/daijifeng001/R-FCN) to support F-FCN, which has been tested under Windows (Windows 7, 8, Server 2012 R2) and Linux (Ubuntu 14.04).
 
 ## Linux Setup
 
