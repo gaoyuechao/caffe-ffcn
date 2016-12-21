@@ -391,6 +391,7 @@ message LayerParameter {
   optional PowerParameter power_param = 122;
   optional PReLUParameter prelu_param = 131;
   optional PSROIPoolingParameter psroi_pooling_param = 10001;
+  optional PPSROIPoolingParameter ppsroi_pooling_param = 10002;
   optional PythonParameter python_param = 130;
   optional ReductionParameter reduction_param = 136;
   optional ReLUParameter relu_param = 123;
@@ -932,6 +933,11 @@ message PSROIPoolingParameter {
   required float spatial_scale = 1; 
   required int32 output_dim = 2; // output channel number
   required int32 group_size = 3; // equal to pooled_size
+}
+message PPSROIPoolingParameter {
+  required float spatial_scale = 1; 
+  required int32 output_dim = 2; // output channel number
+  required int32 part_size = 3; // equal to pooled_size
 }
 message PythonParameter {
   optional string module = 1;
