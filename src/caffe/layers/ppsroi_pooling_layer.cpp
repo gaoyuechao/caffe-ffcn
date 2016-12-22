@@ -2,7 +2,7 @@
 // PR-FCN
 // Licensed under The MIT License [see pr-fcn/LICENSE for details]
 // Written by Yi Li
-// Modified by Gao Yuechao
+// Modified by Gao Yuechao 2016-12
 // ------------------------------------------------------------------
 
 #include <cfloat>
@@ -41,13 +41,13 @@ namespace caffe {
   void PPSROIPoolingLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
     channels_ = bottom[0]->channels();
-    CHECK_EQ(channels_, output_dim_*part_size_*part_size_)
+    CHECK_EQ(channels_, output_dim_)
       << "input channel number does not match layer parameters";
     height_ = bottom[0]->height();
     width_ = bottom[0]->width();
-    top[0]->Reshape(bottom[1]->num(), output_dim_*part_size_*part_size_, pooled_height_, pooled_width_);
-    mapping_channel_.Reshape(bottom[1]->num(), output_dim_*part_size_*part_size_, pooled_height_, pooled_width_);
-    max_loc_.Reshape(bottom[1]->num(), output_dim_*part_size_*part_size_, pooled_height_, pooled_width_);
+    top[0]->Reshape(bottom[1]->num(), output_dim_, pooled_height_, pooled_width_);
+    //mapping_channel_.Reshape(bottom[1]->num(), output_dim_, pooled_height_, pooled_width_);
+    max_loc_.Reshape(bottom[1]->num(), output_dim_, pooled_height_, pooled_width_);
   }
 
   template <typename Dtype>

@@ -2,7 +2,7 @@
 // PR-FCN
 // Licensed under The MIT License [see pr-fcn/LICENSE for details]
 // Written by Yi Li
-// Modified by Gao Yuechao
+// Modified by Gao Yuechao 2016-12
 // ------------------------------------------------------------------
 
 #include <cfloat>
@@ -27,12 +27,12 @@ namespace caffe {
     const int output_dim,
     const int part_size,
     Dtype* top_data,
-    int* mapping_channel,int* max_loc) {
+    int* max_loc) {
     CUDA_KERNEL_LOOP(index, nthreads) {
       // The output is in order (n, ctop, ph, pw)
       int pw = index % pooled_width;
       int ph = (index / pooled_width) % pooled_height;
-      int ctop = (index / pooled_width / pooled_height) % output_dim;  //output_dim=output_dim_*part_size_*part_size_
+      //int ctop = (index / pooled_width / pooled_height) % output_dim;  //output_dim=output_dim_*part_size_*part_size_
       int n = index / pooled_width / pooled_height / output_dim; //number of ROI
 
       // [start, end) interval for spatial sampling
@@ -65,11 +65,13 @@ namespace caffe {
 
       int gw = pw;
       int gh = ph;
-      int c = (ctop*part_size + gh)*part_size + gw;
+      //int c = (ctop*part_size + gh)*part_size + gw;
       Dtype maxval = -FLT_MAX;
       int maxidx = -1;
       
-      bottom_data += (roi_batch_ind * channels + c) * height * width;
+      //bottom_data += (roi_batch_ind * channels + c) * height * width;
+      bottom_data += (roi_batch_ind * channels) * height * width;
+
       Dtype out_sum = 0;
       for (int h = hstart; h < hend; ++h){
         for (int w = wstart; w < wend; ++w){
@@ -84,9 +86,7 @@ namespace caffe {
 
       //Dtype bin_area = (hend - hstart)*(wend - wstart);
       //top_data[index] = is_empty? 0. : out_sum/bin_area;
-      //mapping_channel[index] = c;
       top_data[index] = maxval;
-      mapping_channel[index] = c;
       max_loc[index]=maxidx;
     }
   }
@@ -97,16 +97,14 @@ namespace caffe {
     const Dtype* bottom_data = bottom[0]->gpu_data();
     const Dtype* bottom_rois = bottom[1]->gpu_data();
     Dtype* top_data = top[0]->mutable_gpu_data();
-    int* mapping_channel_ptr = mapping_channel_.mutable_gpu_data();
     int* max_loc_ptr = max_loc_.mutable_gpu_data();
     int count = top[0]->count();
     caffe_gpu_set(count, Dtype(0), top_data);
-    caffe_gpu_set(count, -1, mapping_channel_ptr);
     caffe_gpu_set(count, -1, max_loc_ptr);
     // NOLINT_NEXT_LINE(whitespace/operators)
     PPSROIPoolingForward<Dtype> << <CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS >> >(
       count, bottom_data, spatial_scale_, channels_, height_, width_, pooled_height_,
-      pooled_width_, bottom_rois, output_dim_*part_size_*part_size_, part_size_, top_data, mapping_channel_ptr,max_loc_ptr);
+      pooled_width_, bottom_rois, output_dim_, part_size_, top_data, max_loc_ptr);
     CUDA_POST_KERNEL_CHECK;
   }
 
@@ -114,7 +112,7 @@ namespace caffe {
   __global__ void PPSROIPoolingBackwardAtomic(
     const int nthreads,
     const Dtype* top_diff,
-    const int* mapping_channel,const int* max_loc,
+    const int* max_loc,
     const int num_rois,
     const Dtype spatial_scale,
     const int channels,
@@ -161,8 +159,7 @@ namespace caffe {
       bool is_empty = (hend <= hstart) || (wend <= wstart);
 
       // Compute c at bottom
-      int c = mapping_channel[index];
-      Dtype* offset_bottom_diff = bottom_diff + (roi_batch_ind * channels + c) * height * width;
+      Dtype* offset_bottom_diff = bottom_diff + (roi_batch_ind * channels) * height * width;
       Dtype bin_area = (hend - hstart)*(wend - wstart);
       Dtype diff_val = is_empty ? 0. : top_diff[index] / bin_area;
       for (int h = hstart; h < hend; ++h){
@@ -186,15 +183,14 @@ namespace caffe {
     const Dtype* top_diff = top[0]->gpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_gpu_diff();
     const int bottom_count = bottom[0]->count();
-    const int* mapping_channel_ptr = mapping_channel_.gpu_data();
     const int* max_loc_ptr = max_loc_.gpu_data();
     caffe_gpu_set(bottom[1]->count(), Dtype(0), bottom[1]->mutable_gpu_diff());
     caffe_gpu_set(bottom_count, Dtype(0), bottom_diff);
     const int count = top[0]->count();
     // NOLINT_NEXT_LINE(whitespace/operators)
     PPSROIPoolingBackwardAtomic<Dtype> << <CAFFE_GET_BLOCKS(count), CAFFE_CUDA_NUM_THREADS >> >(
-      count, top_diff, mapping_channel_ptr, top[0]->num(), spatial_scale_,
-      channels_, height_, width_, pooled_height_, pooled_width_, output_dim_*part_size_*part_size_,
+      count, top_diff, max_loc_ptr, top[0]->num(), spatial_scale_,
+      channels_, height_, width_, pooled_height_, pooled_width_, output_dim_,
       bottom_diff, bottom_rois);
     CUDA_POST_KERNEL_CHECK;
   }

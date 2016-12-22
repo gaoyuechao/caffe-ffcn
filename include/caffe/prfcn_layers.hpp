@@ -59,7 +59,7 @@ namespace caffe {
 
     int pooled_height_;
     int pooled_width_;
-    Blob<int> mapping_channel_;
+    //Blob<int> mapping_channel_;
     Blob<int> max_loc_;
   };
 
